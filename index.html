@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 <script>
 document.getElementById('sendToWebhook').addEventListener('click', function() {
     const data = JSON.parse(document.getElementById('jsonInput').value); // Assuming json is in a textarea with id 'jsonInput'
@@ -16,3 +17,261 @@ document.getElementById('sendToWebhook').addEventListener('click', function() {
     .catch(error => console.error('Error:', error));
 });
 </script>
+=======
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-json.min.js"></script>
+    <style>
+        #jsonOutput pre {
+            margin: 0;
+            padding: 0;
+        }
+        #jsonOutput code {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .line-numbers .line-numbers-rows {
+            border-right: 1px solid #999;
+            padding-right: 10px;
+        }
+        #copyNotification {
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl md:text-4xl font-bold mb-6 text-gray-800">JSON Viewer</h1>
+        <div class="flex flex-col lg:flex-row gap-4 md:gap-8">
+            <div class="w-full lg:w-1/2">
+                <textarea id="jsonInput" class="w-full h-48 p-4 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Paste your JSON here"></textarea>
+                <div class="flex justify-between mb-4">
+                    <button id="processJsonBtn" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition duration-300 ease-in-out">Process JSON</button>
+                    <button id="clearAllBtn" class="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition duration-300 ease-in-out">Clear All</button>
+                </div>
+                <div id="summary" class="bg-white p-6 rounded-lg shadow-md overflow-x-auto"></div>
+            </div>
+            <div class="w-full lg:w-1/2">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex justify-between mb-2">
+                        <h2 class="text-xl font-semibold text-gray-800">Sorted JSON</h2>
+                        <button id="copyJsonBtn" class="bg-green-500 text-white px-4 py-1 rounded hover:bg-green-600 transition duration-300 ease-in-out">Copy JSON</button>
+                    </div>
+                    <div id="jsonOutput" class="overflow-y-auto h-[calc(100vh-16rem)]"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="copyNotification" class="fixed bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg opacity-0">
+        Copied!
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const jsonInput = document.getElementById('jsonInput');
+        const processJsonBtn = document.getElementById('processJsonBtn');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const copyJsonBtn = document.getElementById('copyJsonBtn');
+
+        jsonInput.addEventListener('paste', function() {
+            setTimeout(processJSON, 0);
+        });
+
+        processJsonBtn.addEventListener('click', processJSON);
+        clearAllBtn.addEventListener('click', clearAll);
+        copyJsonBtn.addEventListener('click', copyJSON);
+
+        function processJSON() {
+            const jsonInput = document.getElementById('jsonInput').value;
+            try {
+                const jsonData = JSON.parse(jsonInput);
+                displaySummary(jsonData);
+                displaySortedJSON(jsonData);
+            } catch (error) {
+                alert('Invalid JSON: ' + error);
+            }
+        }
+
+        function displaySummary(data) {
+            const summaryDiv = document.getElementById('summary');
+            summaryDiv.innerHTML = '<h2 class="text-2xl font-semibold mb-4 text-gray-800">Summary</h2>';
+            
+            const table = document.createElement('table');
+            table.className = 'w-full';
+
+            if (data.RecordType) {
+                if (data.RecordType === "DetailRecurring") {
+                    displayDetailRecurringSummary(data, table);
+                } else if (data.RecordType === "MasterRecurring") {
+                    displayMasterRecurringSummary(data, table);
+                }
+            } else {
+                displayDefaultSummary(data, table);
+            }
+
+            summaryDiv.appendChild(table);
+        }
+
+        function displayDetailRecurringSummary(data, table) {
+            const params = [
+                'RecordType', 'Status', 'TerminalNumber', 'AccountId', 'RecurringId',
+                'InternalDealNumber', 'PaymentNum', 'FinalDebitCoinId', 'BillingAttempts',
+                'Sum', 'InvoiceDescription', 'CompanyName', 'Email', 'PhMobile'
+            ];
+            params.forEach(param => {
+                let value;
+                switch(param) {
+                    case 'Sum':
+                        value = data[param] ? parseFloat(data[param]).toFixed(2) : 'N/A';
+                        break;
+                    case 'CompanyName':
+                        value = data['acc.CompanyName'] || 'N/A';
+                        break;
+                    case 'Email':
+                        value = data['acc.Email'] || 'N/A';
+                        break;
+                    case 'PhMobile':
+                        value = data['acc.PhMobile'] || 'N/A';
+                        break;
+                    case 'AccountId':
+                        value = data['AccountId'] || 'N/A';
+                        break;
+                    default:
+                        value = data[param] || 'N/A';
+                }
+                addRowToTable(table, param, value);
+            });
+        }
+
+        function displayMasterRecurringSummary(data, table) {
+            const params = [
+                'RecordType', 'IsActive', 'TerminalNumber', 'AccountId', 'RecurringId',
+                'TotalNumOfBills', 'Price', 'FinalDebitCoinId', 'InternalDecription',
+                'CompanyName', 'Email', 'PhMobile'
+            ];
+            params.forEach(param => {
+                let value;
+                switch(param) {
+                    case 'Price':
+                        value = data.FlexItem?.Price || 'N/A';
+                        break;
+                    case 'CompanyName':
+                        value = data['acc.CompanyName'] || 'N/A';
+                        break;
+                    case 'Email':
+                        value = data['acc.Email'] || 'N/A';
+                        break;
+                    case 'PhMobile':
+                        value = data['acc.PhMobile'] || 'N/A';
+                        break;
+                    case 'AccountId':
+                        value = data['AccountId'] || 'N/A';
+                        break;
+                    default:
+                        value = data[param] || 'N/A';
+                }
+                addRowToTable(table, param, value);
+            });
+        }
+
+        function displayDefaultSummary(data, table) {
+            const importantParams = ['record_id', 'platform', 'operation', 'record_log', 'total', 'payment_type', 'transaction', 'zgid', 'account'];
+            
+            addRowToTable(table, 'record_id', data['record_id']);
+
+            if (data.hasOwnProperty('account_url')) {
+                const prefix = data.account_url.includes('flowiz.io') ? 'f_' : 'c_';
+                const platformPrefix = data.platform ? data.platform.charAt(0) : '';
+                const recordIdSuffix = data.record_id || '';
+                const recordIdToSearch = `${prefix}${platformPrefix}${recordIdSuffix}`;
+                addRowToTable(table, 'record ID to search', recordIdToSearch);
+            }
+
+            importantParams.slice(1).forEach(param => {
+                if (data.hasOwnProperty(param)) {
+                    addRowToTable(table, param, data[param]);
+                }
+            });
+        }
+
+        function addRowToTable(table, key, value) {
+            const row = table.insertRow();
+            row.className = 'hover:bg-gray-100';
+            const cell1 = row.insertCell(0);
+            const cell2 = row.insertCell(1);
+            cell1.className = 'font-semibold pr-4 py-2 text-gray-700 align-top';
+            cell2.className = 'py-2 text-gray-800 cursor-pointer';
+            cell1.textContent = key;
+            
+            if (key === 'record_log') {
+                const link = document.createElement('a');
+                link.href = value;
+                link.textContent = value;
+                link.className = 'text-blue-500 hover:underline';
+                link.target = '_blank';
+                cell2.appendChild(link);
+            } else {
+                cell2.textContent = value !== undefined ? value : 'N/A';
+            }
+            cell2.addEventListener('click', (e) => copyToClipboard(value, e));
+        }
+
+        function displaySortedJSON(data) {
+            const sortedData = sortObjectAlphabetically(data);
+            const jsonString = JSON.stringify(sortedData, null, 2);
+            const container = document.getElementById('jsonOutput');
+            container.innerHTML = '<pre><code class="language-json line-numbers">' + 
+                                  jsonString.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + 
+                                  '</code></pre>';
+            Prism.highlightAll();
+        }
+
+        function sortObjectAlphabetically(obj) {
+            return Object.keys(obj).sort().reduce((result, key) => {
+                result[key] = obj[key];
+                return result;
+            }, {});
+        }
+
+        function clearAll() {
+            document.getElementById('jsonInput').value = '';
+            document.getElementById('summary').innerHTML = '';
+            document.getElementById('jsonOutput').innerHTML = '';
+        }
+
+        function copyToClipboard(text, event) {
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification(event);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        function copyJSON(event) {
+            const jsonContent = document.querySelector('#jsonOutput code').textContent;
+            copyToClipboard(jsonContent, event);
+        }
+
+        function showNotification(event) {
+            const notification = document.getElementById('copyNotification');
+            notification.style.opacity = '1';
+            notification.style.left = `${event.clientX}px`;
+            notification.style.top = `${event.clientY + 20}px`;
+            setTimeout(() => {
+                notification.style.opacity = '0';
+            }, 1000);
+        }
+    });
+    </script>
+</body>
+</html>
+<!-- aaa -->
+>>>>>>> Stashed changes
